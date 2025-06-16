@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRAC-Planning - Gestion des Emplois du Temps</title>
+    
+    <!-- Librairie pour le style (design moderne) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Librairie pour les icônes (comme les calendriers, les roues, etc.) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Librairie pour lire les fichiers Excel (pour la fonctionnalité d'upload) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+
+    <!-- Styles personnalisés pour l'application -->
+    <style>
+        /* Ajoute une transition douce aux animations */
+        .transition-all { transition: all 0.3s ease-in-out; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* Style pour les cellules du planning */
+        .room-available { background-color: #dcfce7; }
+        .room-occupied { background-color: #fee2e2; }
+        
+        /* Spinner/icône de chargement */
+        #loadingSpinner {
+            display: none; /* Caché par défaut */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,
