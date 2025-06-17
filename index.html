@@ -4,7 +4,136 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CRAC-Planning - Gestion des Emplois du Temps</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    const API_URL = "VOTRE_URL_DE_SCRIPT_ICI"; // !!! IMPORTANT : VÉRIFIEZ QUE C'EST LA BONNE URL !!!
+
+    // Références aux éléments
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const roomScheduleBody = document.getElementById('roomScheduleBody');
+    const courseRoomSelect = document.getElementById('courseRoom');
+    const addCourseForm = document.getElementById('addCourseForm');
+    let allSallesData = [];
+
+    function showLoading() { loadingSpinner.style.display = 'block'; }
+    function hideLoading() { loadingSpinner.style.display = 'none'; }
+
+    function showTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+    }
+
+    // ==========================================================
+    // ==   VOICI LA FONCTION CORRIGÉE ET INTELLIGENTE         ==
+    // ==========================================================
+    function generateRoomSchedule(salles) {
+        roomScheduleBody.innerHTML = '';
+        const timeSlots = ['8h-10h', '10h-12h', '12h-14h', '14h-16h', '16h-18h'];
+
+        if (!salles || salles.length === 0) {
+            roomScheduleBody.innerHTML = `<tr><td colspan="8" class="text-center p-4">Aucune salle configurée.</td></tr>`;
+            return;
+        }
+
+        salles.forEach(salle => {
+            const row = document.createElement('tr');
+            
+            let rowHTML = `
+                <td class="p-3 border font-medium">${salle.Nom || 'N/A'}</td>
+                <td class="p-3 border text-center">${salle.Capacité || 'N/A'}</td>
+                <td class="p-3 border text-sm">
+                    <div><i class="fas fa-video mr-2 ${salle.VidéoProjecteur === 'Oui' ? 'text-green-600' : 'text-red-400'}"></i> Vidéoprojecteur</div>
+                    <div><i class="fas fa-wind mr-2 ${salle.Climatisation === 'Oui' ? 'text-green-600' : 'text-red-400'}"></i> Climatisation</div>
+                    <div><i class="fas fa-plug mr-2 text-gray-500"></i> ${salle.Prises_Fonctionnelle || 0} Prises</div>
+                </td>
+            `;
+
+            // LA LOGIQUE QUI AFFICHE "OCCUPÉ"
+            timeSlots.forEach(slot => {
+                const cours = salle.planning ? salle.planning[slot] : null;
+                if (cours) {
+                    rowHTML += `
+                        <td class="p-2 border text-center room-occupied">
+                            <div class="font-bold text-red-800">${cours.nom}</div>
+                            <div class="text-xs text-gray-600">${cours.prof || ''} (${cours.niveau || ''})</div>
+                        </td>
+                    `;
+                } else {
+                    rowHTML += `<td class="p-2 border text-center room-available">Libre</td>`;
+                }
+            });
+
+            row.innerHTML = rowHTML;
+            roomScheduleBody.appendChild(row);
+        });
+    }
+
+    function populateRoomSelect(salles) {
+        courseRoomSelect.innerHTML = '<option value="">-- Choisir une salle --</option>';
+        if (salles) {
+            salles.forEach(room => {
+                const option = document.createElement('option');
+                option.value = room.Nom;
+                option.textContent = `${room.Nom} (Capacité: ${room.Capacité})`;
+                courseRoomSelect.appendChild(option);
+            });
+        }
+    }
+
+    // ==========================================================
+    // ==   VOICI LA LOGIQUE DE CHARGEMENT/RAFRAICHISSEMENT    ==
+    // ==========================================================
+    function loadAndRenderData() {
+        showLoading();
+        fetch(API_URL)
+            .then(response => {
+                if (!response.ok) throw new Error(`Erreur réseau : ${response.statusText}`);
+                return response.json();
+            })
+            .then(data => {
+                allSallesData = data;
+                generateRoomSchedule(allSallesData);
+                populateRoomSelect(allSallesData);
+                hideLoading();
+            })
+            .catch(error => {
+                console.error("ERREUR lors du chargement des données:", error);
+                hideLoading();
+                alert("Impossible de charger les données. L'application ne peut pas démarrer. Vérifiez l'URL de l'API et les permissions du script.");
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        showTab('planning');
+        loadAndRenderData(); // On appelle la fonction de chargement globale
+    });
+
+    addCourseForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        showLoading();
+
+        const formData = new FormData(addCourseForm);
+        const courseData = Object.fromEntries(formData.entries());
+        
+        fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(courseData) })
+        .then(response => response.json())
+        .then(result => {
+            if(result.status === "success") {
+                alert(result.message);
+                addCourseForm.reset();
+                showTab('planning');
+                loadAndRenderData(); // ON RAFRAÎCHIT TOUT POUR VOIR LE CHANGEMENT !
+            } else {
+                hideLoading();
+                alert(`Erreur: ${result.message}`);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error("Erreur lors de l'ajout du cours:", error);
+            alert("Une erreur grave est survenue. Impossible d'ajouter le cours.");
+        });
+    });
+</script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .transition-all { transition: all 0.3s ease-in-out; }
